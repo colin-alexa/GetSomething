@@ -1,6 +1,23 @@
 #Hao Nguyen, John Yeung, Colin Robinson
 import urllib, json, random, sqlite3, os
 
+categories = {'antiques':'20081', 'art':'550', 'baby':'2984','books':'267','business & industrial':'12576','cameras & photo':'625',
+ 'cell phones & accessories':'15032', 'clothing, shoes & accessories':'15032', 'coins & paper money':'1116',
+ 'collectibles':'1', 'computers/tablets & networking':'58058', 'consumer electronics': '293', 'crafts': '14439',
+ 'dolls & bears':'237', 'dvds & movies': '11232', 'entertainment memorabilia':'45100', 'everything else':'99',
+ 'gift cards & coupons':'172008', 'health & beauty':'26395', 'home & garden':'11700', 'jewelry & watches': '281',
+ 'music':'11233', 'musical instruments & gear':'619', 'pet supplies':'1281', 'pottery & glass':'870',
+ 'real estate':'10542', 'speciality services':'316', 'sporting goods':'382', 'sports mem, cards & fan shop':'64482',
+ 'stamps':'260', 'tickets':'1305', 'toys & hobbies':'220', 'travel':'3252', 'video games & consoles': '1249'}
+
+
+picked = {'everything else': 1, 'art': 1, 'pet supplies': 1, 'cell phones & accessories': 1, 'books': 1, 'gift cards & coupons': 1,
+          'sporting goods': 1, 'cameras & photo': 1, 'video games & consoles': 1, 'dolls & bears': 1, 'business & industrial': 1,
+          'collectibles': 1, 'travel': 1, 'antiques': 1, 'dvds & movies': 1, 'stamps': 1, 'musical instruments & gear': 1, 'music': 1, 
+          'clothing, shoes & accessories': 1, 'real estate': 1, 'sports mem, cards & fan shop': 1, 'home & garden': 1, 'coins & paper money': 1,
+          'health & beauty': 1, 'baby': 1, 'tickets': 1, 'consumer electronics': 1, 'computers/tablets & networking': 1, 'toys & hobbies': 1,
+          'entertainment memorabilia': 1, 'crafts': 1, 'jewelry & watches': 1, 'pottery & glass': 1, 'speciality services': 1}
+
 # sub categories are not useful
 file = None
 def init_database():
@@ -11,7 +28,18 @@ def init_database():
     if build:
         cur = file.cursor()
         cur.execute("CREATE TABLE purchases (ID TEXT, url TEXT, category TEXT, UNIQUE(ID))")
+        cur.execute("CREATE TABLE categories (category TEXT, picked INT, unique(category))")
+        cur.executemany("INSERT INTO categories VALUES (?,?)", picked.items())
         file.commit()
+    else:
+        cur = file.cursor()
+        cur.execute("SELECT * FROM CATEGORIES")
+        populate = cur.fetchall()
+        for item in populate:
+            #print item[0] + " = " +str(item[1])
+            picked[item[0]] = item[1]
+
+        pass
 
 def getParent(categoryID):
     url = "http://open.api.ebay.com/Shopping?" +\
@@ -46,22 +74,26 @@ def purchases():
     return all
 
 
-def search(avoidCategory, maxPrice, feedbackMinimum, topSellersOnly = False):
+def search(maxPrice, feedbackMinimum, topSellersOnly = False):
     '''Takes an item name and searches for it, returning a TUPLE formed as such ([list of itemIDs],
-    [list of actual items]). Takes (STRING avoidCategory, INT maxPrice, INT feedbackMinimum, BOOL topSellersOnly)'''
+    [list of actual items]). Takes (INT maxPrice, INT feedbackMinimum, BOOL topSellersOnly)
+    Given that this method only produces a list, it is strongly suggested to use Find instead'''
 
+    #perhaps take a min price; or set min price to half of price when the amount they give us >$10
 
-    categories = {'antiques':'20081', 'art':'550', 'baby':'2984','books':'267','business & industrial':'12576','cameras & photo':'625',
- 'cell phones & accessories':'15032', 'clothing, shoes & accessories':'15032', 'coins & paper money':'1116',
- 'collectibles':'1', 'computers/tablets & networking':'58058', 'consumer electronics': '293', 'crafts': '14439',
- 'dolls & bears':'237', 'dvds & movies': '11232', 'entertainment memorabilia':'45100', 'everything else':'99',
- 'gift cards & coupons':'172008', 'health & beauty':'26395', 'home & garden':'11700', 'jewelry & watches': '281',
- 'music':'11233', 'musical instruments & gear':'619', 'pet supplies':'1281', 'pottery & glass':'870',
- 'real estate':'10542', 'speciality services':'316', 'sporting goods':'382', 'sports mem, cards & fan shop':'64482',
- 'stamps':'260', 'tickets':'1305', 'toys & hobbies':'220', 'travel':'3252', 'video games & consoles': '1249'}
-    categoryString = avoidCategory
-    while categoryString == avoidCategory:
-       categoryString = random.choice(categories.keys())
+    #categoryString = random.choice(categories.keys())
+    #Weighted Random ala http://stackoverflow.com/questions/3679694/a-weighted-version-of-random-choice
+
+    offset = random.randint(0, sum(picked.itervalues())-1)
+    for k, v in picked.iteritems():
+        if offset < v:
+            categoryString = k
+        offset -= v
+    picked[categoryString] = picked[categoryString]+1
+    global file
+    cur = file.cursor()
+    cur.execute("UPDATE categories SET picked=? WHERE category=?", (picked[categoryString], categoryString))
+    file.commit()
     category = categories[categoryString]
     actualMaxPrice = str(maxPrice) + ".00"
     actualFeedbackMinimum = str(feedbackMinimum)
