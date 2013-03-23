@@ -5,8 +5,8 @@ import urllib, json, random, sqlite3, os
 file = None
 def init_database():
     global file
-    build = not os.path.exists('purchases.sqlite')
-    file = sqlite3.connect('purchases.sqlite')
+    build = not os.path.exists('LivePurchases.sqlite')
+    file = sqlite3.connect('LivePurchases.sqlite')
     file.row_factory = sqlite3.Row #so info is returned as dicts
     if build:
         cur = file.cursor()
@@ -49,6 +49,8 @@ def purchases():
 def search(avoidCategory, maxPrice, feedbackMinimum, topSellersOnly = False):
     '''Takes an item name and searches for it, returning a TUPLE formed as such ([list of itemIDs],
     [list of actual items]). Takes (STRING avoidCategory, INT maxPrice, INT feedbackMinimum, BOOL topSellersOnly)'''
+
+
     categories = {'antiques':'20081', 'art':'550', 'baby':'2984','books':'267','business & industrial':'12576','cameras & photo':'625',
  'cell phones & accessories':'15032', 'clothing, shoes & accessories':'15032', 'coins & paper money':'1116',
  'collectibles':'1', 'computers/tablets & networking':'58058', 'consumer electronics': '293', 'crafts': '14439',
