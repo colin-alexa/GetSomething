@@ -2,6 +2,10 @@ GetSomething/*
 #ignore thumbnails created by windows
 Thumbs.db
 #Ignore files build by Visual Studio
+GetSomthing.pyproj
+GetSomthing.sln
+*.sln
+*.pyproj
 *.obj
 *.exe
 *.pdb
