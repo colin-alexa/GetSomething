@@ -82,13 +82,16 @@ def search(maxPrice, feedbackMinimum, topSellersOnly = False):
     #perhaps take a min price; or set min price to half of price when the amount they give us >$10
 
     #categoryString = random.choice(categories.keys())
-    #Weighted Random ala http://stackoverflow.com/questions/3679694/a-weighted-version-of-random-choice
-
-    offset = random.randint(0, sum(picked.itervalues())-1)
-    for k, v in picked.iteritems():
-        if offset < v:
-            categoryString = k
-        offset -= v
+    #Weighted random ala http://stackoverflow.com/questions/3679694/a-weighted-version-of-random-choice
+    #Note it's inverted though; numbers get smaller as they're picked more, so I have the value dividing 100 (could be dividing any number)
+    total = sum(100.0/i for i in picked.itervalues())
+    r = random.uniform(0, total)
+    upto = 0
+    for c, w in picked.iteritems():
+        if upto + 100.0/w > r:
+            categoryString = c
+            break
+        upto += 100.0/w
     picked[categoryString] = picked[categoryString]+1
     global file
     cur = file.cursor()
