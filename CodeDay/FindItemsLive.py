@@ -74,72 +74,108 @@ def purchases():
     return all
 
 
-def search(maxPrice, feedbackMinimum, topSellersOnly = False):
+def search(minPrice, maxPrice, feedbackMinimum, topSellersOnly = False, evenDistribution = True, returnIDs = False):
     '''Takes an item name and searches for it, returning a TUPLE formed as such ([list of itemIDs],
-    [list of actual items]). Takes (INT maxPrice, INT feedbackMinimum, BOOL topSellersOnly)
+    [list of actual items]). Takes (INT minPrice, INT maxPrice, INT feedbackMinimum, BOOL topSellersOnly)
     Given that this method only produces a list, it is strongly suggested to use Find instead'''
 
     #perhaps take a min price; or set min price to half of price when the amount they give us >$10
-
-    #categoryString = random.choice(categories.keys())
-    #Weighted random ala http://stackoverflow.com/questions/3679694/a-weighted-version-of-random-choice
-    #Note it's inverted though; numbers get smaller as they're picked more, so I have the value dividing 100 (could be dividing any number)
-    total = sum(100.0/i for i in picked.itervalues())
-    r = random.uniform(0, total)
-    upto = 0
-    for c, w in picked.iteritems():
-        if upto + 100.0/w > r:
-            categoryString = c
-            break
-        upto += 100.0/w
-    picked[categoryString] = picked[categoryString]+1
-    global file
-    cur = file.cursor()
-    cur.execute("UPDATE categories SET picked=? WHERE category=?", (picked[categoryString], categoryString))
-    file.commit()
-    category = categories[categoryString]
-    actualMaxPrice = str(maxPrice) + ".00"
-    actualFeedbackMinimum = str(feedbackMinimum)
-    if topSellersOnly: actualTopSellersOnly = 'true'
-    else: actualTopSellersOnly = 'false'
-
-    url = "http://svcs.ebay.com/services/search/FindingService/v1?" +\
-        "OPERATION-NAME=findItemsByCategory&" +\
-        "SERVICE-VERSION=1.9.0&" +\
-        "SECURITY-APPNAME=HaoNguye-e424-4914-99b4-4209afbb0a00&" +\
-        "RESPONSE-DATA-FORMAT=JSON&" +\
-        "REST-PAYLOAD&" +\
-        "categoryId="+category+"&" +\
-        "itemFilter(0).name=AvailableTo&"+\
-        "itemFilter(0).value=US&"+\
-        "itemFilter(1).name=MaxPrice&" +\
-        "itemFilter(1).value="+actualMaxPrice+"&" +\
-        "itemFilter(1).paramName=Currency&" +\
-        "itemFilter(1).paramValue=USD&" +\
-        "itemFilter(2).name=TopRatedSellerOnly&" +\
-        "itemFilter(2).value="+actualTopSellersOnly+"&" +\
-        "itemFilter(3).name=FeedbackScoreMin"+\
-        "itemFilter(3).value="+actualFeedbackMinimum+"&"+\
-        "itemFilter(4).name=FreeShippingOnly"+\
-        "itemFilter(4).value=true&"+\
-        "itemFilter(5).name=ListingType&"+\
-        "itemFilter(5).value=AuctionWithBIN&"
-
-    resp = urllib.urlopen(url)
-    r = resp.read()
-    val = json.loads(r)
-    results = val['findItemsByCategoryResponse'][0]['searchResult'][0]
+    #min price should come from the site, and default to automatically setting itself to about half the max or something
+    #TODO: and ideally sort by location, but we need the zipcode from their account to do that
+    searchCount = 0
     r = []
-    r2 = []
-    del results['@count']
-    for item in results:
-        for i in results[item]:
-            r2.append(i)
-            format = str(i['itemId']).strip('[').strip(']').strip('u').strip("'")
-            r.append(format)
-    final = (r, r2)
-    if len(r) == 0: final = search(avoidCategory, maxPrice, feedbackMinimum, topSellersOnly)
+    while len(r) == 0:
+        searchCount = searchCount + 1
+        if searchCount == 10:
+            return None #This means the search failed; it shouldn't take more than 10 tries
+
+        if evenDistribution:
+            #categoryString = random.choice(categories.keys())
+            #Weighted random ala http://stackoverflow.com/questions/3679694/a-weighted-version-of-random-choice
+            #Note it's inverted though; numbers get smaller as they're picked more, so I have the value dividing 100 (could be dividing any number)
+            total = sum(100.0/i for i in picked.itervalues())
+            ra = random.uniform(0, total)
+            upto = 0
+            for c, w in picked.iteritems():
+                if upto + 100.0/w > ra:
+                    categoryString = c
+                    break
+                upto += 100.0/w
+        else:
+            categoryString = random.choice(categories.keys())
+        picked[categoryString] = picked[categoryString]+1
+        global file
+        cur = file.cursor()
+        cur.execute("UPDATE categories SET picked=? WHERE category=?", (picked[categoryString], categoryString))
+        file.commit()
+        category = categories[categoryString]
+        actualMaxPrice = str(maxPrice) + ".00"
+        actualMinPrice = str(minPrice) + ".00"
+        actualFeedbackMinimum = str(feedbackMinimum)
+        if topSellersOnly: actualTopSellersOnly = 'true'
+        else: actualTopSellersOnly = 'false'
+
+        #"outputSelector=SellerInfo&"+\ to get more detailed seller info
+
+        url = "http://svcs.ebay.com/services/search/FindingService/v1?" +\
+            "OPERATION-NAME=findItemsByCategory&" +\
+            "SERVICE-VERSION=1.9.0&" +\
+            "SECURITY-APPNAME=HaoNguye-e424-4914-99b4-4209afbb0a00&" +\
+            "RESPONSE-DATA-FORMAT=JSON&" +\
+            "REST-PAYLOAD&" +\
+            "outputSelector(0)=PictureURLSuperSize&"+\
+            "categoryId="+category+"&" +\
+            "itemFilter(0).name=AvailableTo&"+\
+            "itemFilter(0).value=US&"+\
+            "itemFilter(1).name=MaxPrice&" +\
+            "itemFilter(1).value="+actualMaxPrice+"&" +\
+            "itemFilter(1).paramName=Currency&" +\
+            "itemFilter(1).paramValue=USD&" +\
+            "itemFilter(2).name=TopRatedSellerOnly&" +\
+            "itemFilter(2).value="+actualTopSellersOnly+"&" +\
+            "itemFilter(3).name=FeedbackScoreMin"+\
+            "itemFilter(3).value="+actualFeedbackMinimum+"&"+\
+            "itemFilter(4).name=FreeShippingOnly&"+\
+            "itemFilter(4).value=true&"+\
+            "itemFilter(5).name=ListingType&"+\
+            "itemFilter(5).value=AuctionWithBIN&"+\
+            "itemFilter(6).name=MinPrice&"+\
+            "itemFilter(6).value="+actualMinPrice+"&"\
+
+        resp = urllib.urlopen(url)
+        re = resp.read()
+        val = json.loads(re)
+        results = val['findItemsByCategoryResponse'][0]['searchResult'][0]
+        del results['@count']
+        if returnIDs:
+            r2 = []
+            for item in results:
+                for i in results[item]:
+                    r2.append(i)
+                    format = str(i['itemId']).strip('[').strip(']').strip('u').strip("'")
+                    r.append(format)
+            final = (r, r2)
+        else:
+            for item in results:
+                for i in results[item]:
+                    r.append(i)
+            final = r
     return final
+
+def find(minPrice, maxPrice, feedbackMinimum, topSellersOnly = False, evenDistribution = True, returnIDs = False):
+    item = {}
+    results = search(minPrice, maxPrice, feedbackMinimum, topSellersOnly, evenDistribution, returnIDs)
+    index = random.randint(0, len(results)-1) #Length of list is out of bounds, has to be length - 1
+    picked = results[index]
+    save(picked)
+    item['URL']=picked['viewItemURL'][0]
+    item['imageURL']=picked.get('pictureURLSuperSize', ['Could not get supersize image'])[0]
+    item['price']=picked['listingInfo'][0]['buyItNowPrice'][0]['__value__']
+    item['ID']=picked['itemId'][0]
+    item['base']=picked
+
+    return item
+
 
 
 #result = search('20081', 1, 0, True)
