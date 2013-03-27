@@ -1,5 +1,17 @@
-#Hao Nguyen, John Yeung, Colin Robinson
+#Josh Tanner, Hao Nguyen
 import urllib, json, random, sqlite3, os
+import ConfigParser
+
+#App information
+config = ConfigParser.ConfigParser()
+config.read("configLive.ini")
+
+devID = config.get("Keys", "Developer")
+appID = config.get("Keys", "Application")
+certID = config.get("Keys", "Certificate")
+findingUrl = config.get("Server", "findingURL")
+shoppingUrl = config.get("Server", "shoppingURL")
+
 
 categories = {'antiques':'20081', 'art':'550', 'baby':'2984','books':'267','business & industrial':'12576','cameras & photo':'625',
  'cell phones & accessories':'15032', 'clothing, shoes & accessories':'15032', 'coins & paper money':'1116',
@@ -36,16 +48,13 @@ def init_database():
         cur.execute("SELECT * FROM CATEGORIES")
         populate = cur.fetchall()
         for item in populate:
-            #print item[0] + " = " +str(item[1])
             picked[item[0]] = item[1]
 
-        pass
-
 def getParent(categoryID):
-    url = "http://open.api.ebay.com/Shopping?" +\
-        "callname=GetCategoryInfo&" +\
+    url = shoppingUrl +\
+        "?callname=GetCategoryInfo&" +\
         "version=677&" +\
-        "appid=HaoNguye-e424-4914-99b4-4209afbb0a00&" +\
+        "appid="+appID+"&" +\
         "responseencoding=JSON&" +\
         "categoryID="+categoryID+"&" 
 
@@ -79,14 +88,11 @@ def search(minPrice, maxPrice, feedbackMinimum, topSellersOnly = False, evenDist
     [list of actual items]). Takes (INT minPrice, INT maxPrice, INT feedbackMinimum, BOOL topSellersOnly)
     Given that this method only produces a list, it is strongly suggested to use Find instead'''
 
-    #perhaps take a min price; or set min price to half of price when the amount they give us >$10
-    #min price should come from the site, and default to automatically setting itself to about half the max or something
-    #TODO: and ideally sort by location, but we need the zipcode from their account to do that
     searchCount = 0
     r = []
     while len(r) == 0:
         searchCount = searchCount + 1
-        if searchCount == 10:
+        if searchCount == 15:
             return None #This means the search failed; it shouldn't take more than 10 tries
 
         if evenDistribution:
@@ -117,10 +123,10 @@ def search(minPrice, maxPrice, feedbackMinimum, topSellersOnly = False, evenDist
 
         #"outputSelector=SellerInfo&"+\ to get more detailed seller info
 
-        url = "http://svcs.ebay.com/services/search/FindingService/v1?" +\
-            "OPERATION-NAME=findItemsByCategory&" +\
+        url = findingUrl +\
+            "?OPERATION-NAME=findItemsByCategory&" +\
             "SERVICE-VERSION=1.9.0&" +\
-            "SECURITY-APPNAME=HaoNguye-e424-4914-99b4-4209afbb0a00&" +\
+            "SECURITY-APPNAME="+appID +"&"\
             "RESPONSE-DATA-FORMAT=JSON&" +\
             "REST-PAYLOAD&" +\
             "outputSelector(0)=PictureURLSuperSize&"+\
@@ -165,9 +171,12 @@ def search(minPrice, maxPrice, feedbackMinimum, topSellersOnly = False, evenDist
 def find(minPrice, maxPrice, feedbackMinimum, topSellersOnly = False, evenDistribution = True, returnIDs = False):
     item = {}
     results = search(minPrice, maxPrice, feedbackMinimum, topSellersOnly, evenDistribution, returnIDs)
+    if results == None:
+        item['state']='fail'
     index = random.randint(0, len(results)-1) #Length of list is out of bounds, has to be length - 1
     picked = results[index]
     save(picked) #this keeps a record so the buyer doesn't have to
+    item['state']='good'
     item['URL']=picked['viewItemURL'][0]
     item['imageURL']=picked.get('pictureURLSuperSize', ['Could not get supersize image'])[0]
     item['price']=picked['listingInfo'][0]['buyItNowPrice'][0]['__value__']
@@ -176,12 +185,5 @@ def find(minPrice, maxPrice, feedbackMinimum, topSellersOnly = False, evenDistri
 
     return item
 
-
-
-#result = search('20081', 1, 0, True)
-#result = search('20081', 1, 0, True)
-#result = search('20081', 1, 0, False)
-#save(result[1][0])
-#pt = purchases()
 
 
