@@ -175,6 +175,7 @@ def find(minPrice, maxPrice, feedbackMinimum, topSellersOnly = False, evenDistri
     results = search(minPrice, maxPrice, feedbackMinimum, topSellersOnly, evenDistribution, returnIDs)    
     if results == None:
         item['state']='fail'
+        return item
     index = random.randint(0, len(results)-1) #Length of list is out of bounds, has to be length - 1
     picked = results[index]
     save(picked) #this keeps a record so the buyer doesn't have to
