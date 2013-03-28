@@ -1,5 +1,5 @@
 #Josh Tanner, Hao Nguyen
-import urllib, json, random, sqlite3, os
+import urllib, json, random, sqlite3, os, math
 import ConfigParser
 
 #App information
@@ -170,9 +170,13 @@ def search(minPrice, maxPrice, feedbackMinimum, topSellersOnly = False, evenDist
             final = r
     return final
 
-def find(minPrice, maxPrice, feedbackMinimum, topSellersOnly = False, evenDistribution = True, returnIDs = False):
+def find(maxPrice, feedbackMinimum, enforceMinPrice = True, evenDistribution = True, topSellersOnly = False):
+    m = float(maxPrice)
+    if enforceMinPrice:
+        minPrice = int((math.log(m, 6)/5.5)*m)
+    else: minPrice = 0
     item = {}
-    results = search(minPrice, maxPrice, feedbackMinimum, topSellersOnly, evenDistribution, returnIDs)    
+    results = search(minPrice, maxPrice, feedbackMinimum, topSellersOnly, evenDistribution, False)
     if results == None:
         item['state']='fail'
         return item
