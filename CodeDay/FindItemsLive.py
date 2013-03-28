@@ -115,9 +115,9 @@ def search(minPrice, maxPrice, feedbackMinimum, topSellersOnly = False, evenDist
         cur.execute("UPDATE categories SET picked=? WHERE category=?", (picked[categoryString], categoryString))
         file.commit()
         category = categories[categoryString]
-        actualMaxPrice = str(maxPrice) + ".00"
-        actualMinPrice = str(minPrice) + ".00"
-        actualFeedbackMinimum = str(feedbackMinimum)
+        actualMaxPrice = str(float(maxPrice))
+        actualMinPrice = str(float(minPrice))
+        actualFeedbackMinimum = str(float(feedbackMinimum))
         if topSellersOnly: actualTopSellersOnly = 'true'
         else: actualTopSellersOnly = 'false'
 
