@@ -4,7 +4,7 @@ import ConfigParser
 
 #App information
 config = ConfigParser.ConfigParser()
-config.read("configLive.ini")
+config.read(os.path.join(os.path.abspath(os.path.dirname(__file__)), "configLive.ini"))
 
 devID = config.get("Keys", "Developer")
 appID = config.get("Keys", "Application")
@@ -115,9 +115,9 @@ def search(minPrice, maxPrice, feedbackMinimum, topSellersOnly = False, evenDist
         cur.execute("UPDATE categories SET picked=? WHERE category=?", (picked[categoryString], categoryString))
         file.commit()
         category = categories[categoryString]
-        actualMaxPrice = str(float(maxPrice))
-        actualMinPrice = str(float(minPrice))
-        actualFeedbackMinimum = str(float(feedbackMinimum))
+        actualMaxPrice = str(int(float(maxPrice))) + ".00"
+        actualMinPrice = str(int(float(minPrice))) + ".00"
+        actualFeedbackMinimum = str(int(float(feedbackMinimum)))
         if topSellersOnly: actualTopSellersOnly = 'true'
         else: actualTopSellersOnly = 'false'
 

@@ -4,7 +4,7 @@ import ConfigParser
 
 #App information
 config = ConfigParser.ConfigParser()
-config.read("config.ini")
+config.read("configLive.ini")
 
 devID = config.get("Keys", "Developer")
 appID = config.get("Keys", "Application")
@@ -32,11 +32,10 @@ picked = {'everything else': 1, 'art': 1, 'pet supplies': 1, 'cell phones & acce
 
 # sub categories are not useful
 file = None
-
 def init_database():
     global file
-    build = not os.path.exists('Purchases.sqlite')
-    file = sqlite3.connect('Purchases.sqlite')
+    build = not os.path.exists('LivePurchases.sqlite')
+    file = sqlite3.connect('LivePurchases.sqlite')
     file.row_factory = sqlite3.Row #so info is returned as dicts
     if build:
         cur = file.cursor()
@@ -54,11 +53,10 @@ def init_database():
 def getParent(categoryID):
     url = shoppingUrl +\
         "?callname=GetCategoryInfo&" +\
-        "version=809&" +\
+        "version=677&" +\
         "appid="+appID+"&" +\
         "responseencoding=JSON&" +\
         "categoryID="+categoryID+"&" 
-
 
     resp = urllib.urlopen(url)
     r = resp.read()
@@ -191,3 +189,7 @@ def find(maxPrice, feedbackMinimum, enforceMinPrice = True, evenDistribution = T
     item['base']=picked
 
     return item
+
+
+init_database()
+#This should mean we don't have to call it externally
